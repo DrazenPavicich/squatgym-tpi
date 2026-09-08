@@ -21,6 +21,27 @@ Everything here derives from files attached at the start of the project:
 | `preview/` | HTML cards rendered in the Design System tab (colors, type, components, brand) |
 | `sources/` | Original prototype + diagnostic docs (read-only reference) |
 | `ui_kits/squatgym_admin/` | Interactive React recreation — login → dashboard → alumnos flows |
+| `src/` | Aplicación React modular: datos, componentes, pantallas, estado global y utilidades |
+| `index4.html` | Prototipo monolítico original, conservado como respaldo accesible |
+
+## Ejecución local
+
+La entrada principal es `index.html` y usa Vite:
+
+```bash
+npm install
+npm run dev
+```
+
+Para una validación de producción:
+
+```bash
+npm run build
+```
+
+Cada función de pantalla del prototipo vive en `src/screens/`; los datos demo están en
+`src/data/mockData.js`, la navegación en `src/data/roles.js` y los estilos extraídos en
+`src/index.css`.
 
 ## Content Fundamentals
 

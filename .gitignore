@@ -10,3 +10,7 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Node/Vite generated files
+node_modules/
+dist/
