@@ -50,7 +50,7 @@ body{
 .app-body{display:flex;min-height:calc(100vh - 48px)}
 .sidebar{width:210px;background:var(--sg-sur);border-right:1px solid var(--sg-bor);padding:1rem 0;flex-shrink:0}
 .sb-section{font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:#8F8F96;padding:.5rem 1.2rem;margin-top:.5rem;font-weight:600}
-.sb-item{display:flex;align-items:center;gap:.65rem;padding:.65rem 1.2rem;font-size:.85rem;color:#C9C9CF;cursor:pointer;transition:all .15s;border-left:3px solid transparent;font-weight:500}
+.sb-item{display:flex;align-items:center;gap:.65rem;padding:.65rem 1.2rem;width:100%;font-size:.85rem;color:#C9C9CF;background:transparent;border:0;border-left:3px solid transparent;text-align:left;cursor:pointer;transition:all .15s;font-weight:500}
 .sb-item:hover,.sb-item.active{color:var(--sg-acc);border-left-color:var(--sg-acc);background:rgba(255,107,0,.05)}
 .sb-item .sb-ico{font-size:1rem;width:1.2rem;text-align:center}
 .main{flex:1;overflow-y:auto;max-height:calc(100vh - 48px)}
@@ -169,6 +169,33 @@ input:focus,select:focus,textarea:focus{border-color:var(--sg-acc);box-shadow:0 
 .matrix-cell-clase:hover { background: rgba(255,107,0,.15); transform: translateY(-2px); }
 .matrix-cell-t { font-weight: 700; color: #fff; margin-bottom: 0.2rem; display: block; font-size: 0.85rem; }
 .matrix-cell-p { color: var(--sg-mut); font-size: 0.75rem; }
+button,.btn,.btn-out,.ab,.role-btn,.qa,.sb-item{min-height:36px}
+button:focus-visible,.btn:focus-visible,.btn-out:focus-visible,.ab:focus-visible,.role-btn:focus-visible,.qa:focus-visible,.sb-item:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--sg-acc);outline-offset:2px}
+.qa,.role-btn,.sb-item{cursor:pointer}
+.toast-region{position:fixed;right:1.25rem;bottom:1.25rem;z-index:300;display:flex;flex-direction:column;gap:.6rem;max-width:min(380px,calc(100vw - 2rem))}
+.toast{background:var(--sg-sur2);border:1px solid var(--sg-bor);border-left:3px solid var(--sg-acc);box-shadow:var(--sg-shadow-md);padding:.8rem 1rem;color:var(--sg-txt);font-size:.85rem;line-height:1.4;animation:fadeIn .2s ease}
+.toast.ok{border-left-color:var(--sg-ok)}.toast.err{border-left-color:var(--sg-err)}.toast.warn{border-left-color:var(--sg-warn)}
+.print-only{display:none}
+@media (max-width:900px){
+  .login-l{padding:2rem}.login-r{width:35%}.sidebar{width:180px}.scr{padding:1.25rem}
+  .g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}
+  .quick-actions,.card-grid{grid-template-columns:repeat(2,1fr)!important}
+}
+@media (max-width:680px){
+  .login-r{display:none}.login-l{padding:1.5rem;align-items:center}.login-form{width:min(100%,400px)}
+  .topbar{padding:.55rem .8rem;gap:.5rem}.topbar-r{gap:.45rem}.user-label{display:none}.role-badge{font-size:.58rem}
+  .app-body{display:block}.sidebar{width:100%;display:flex;overflow-x:auto;padding:.35rem;border-right:0;border-bottom:1px solid var(--sg-bor);gap:.25rem}
+  .sb-section{display:none}.sb-item{white-space:nowrap;border-left:0;border-bottom:3px solid transparent;padding:.55rem .7rem;font-size:.78rem}.sb-item.active{border-left:0;border-bottom-color:var(--sg-acc)}
+  .main{max-height:none;overflow:visible}.scr{padding:1rem .75rem}.ph-title{font-size:1.7rem}.ph{align-items:stretch}.ph>div:last-child{width:100%}.ph .btn{width:100%;justify-content:center}
+  .g4,.g3,.g2,.fr,.fr3,.quick-actions,.card-grid{grid-template-columns:1fr!important}.role-btns{grid-template-columns:repeat(2,1fr)!important}
+  .tbl-wrap{overflow-x:auto}.tbl-wrap table{min-width:680px}.srch>*{width:100%!important}.srch label{justify-content:space-between}
+  .factions{flex-direction:column}.factions .btn{width:100%;justify-content:center}.toast-region{right:.75rem;bottom:.75rem}
+}
+@media print{
+  body{background:#fff!important;color:#111!important}.topbar,.sidebar,.ph .btn,.factions,.toast-region{display:none!important}
+  .main{max-height:none!important;overflow:visible!important}.scr{display:block!important;padding:0!important}.tbl-wrap,.stat,.fsec,.profile-box{background:#fff!important;color:#111!important;border-color:#bbb!important;box-shadow:none!important}
+  th,td,.ph-title,.ph-sub,.stat-lbl,.stat-val{color:#111!important}.print-only{display:block}.badge{border-color:#777!important;color:#111!important;background:#eee!important}
+}
 </style>
 </head>
 <body>
@@ -180,6 +207,18 @@ input:focus,select:focus,textarea:focus{border-color:var(--sg-acc);box-shadow:0 
 
 <script type="text/babel">
 const { useState } = React;
+
+const notify = (message, type='info') => window.dispatchEvent(new CustomEvent('sg:toast', { detail:{ message, type } }));
+const printPage = () => window.print();
+const downloadCSV = (filename, rows) => {
+  const csv = rows.map(row => row.map(value => `"${String(value ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const blob = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = filename; link.click();
+  URL.revokeObjectURL(url);
+  notify('Archivo exportado correctamente', 'ok');
+};
 
 // Data
 const ALUMNOS = [
@@ -349,11 +388,11 @@ const Alert = ({ variant='info', children }) => (
 );
 
 const QuickAction = ({ ico, title, desc, onClick }) => (
-  <div className="qa" onClick={onClick}>
+  <button type="button" className="qa" onClick={onClick} aria-label={title}>
     <div className="qa-ico">{ico}</div>
     <div className="qa-title">{title}</div>
     {desc && <div className="qa-desc">{desc}</div>}
-  </div>
+  </button>
 );
 
 const FormField = ({ label, children }) => (
@@ -379,6 +418,7 @@ const Topbar = ({ role, perfil, onLogout, onHome }) => {
       <div className="topbar-r">
         <span className="role-badge">{r.label}{role==='alumno' && perfil==='deudor' ? ' · DEUDOR' : ''}</span>
         <span className="user-label">{userLabel}</span>
+        <button className="btn-out" onClick={printPage}>Imprimir</button>
         <button className="btn-out" onClick={onLogout}>Salir</button>
       </div>
     </div>
@@ -393,10 +433,10 @@ const Sidebar = ({ role, active, onNav }) => {
         <React.Fragment key={i}>
           <div className="sb-section">{sec.section}</div>
           {sec.items.map(([key, ico, label]) => (
-            <div key={key} className={'sb-item' + (active === key ? ' active' : '')} onClick={() => onNav(key)}>
+            <button type="button" key={key} className={'sb-item' + (active === key ? ' active' : '')} onClick={() => onNav(key)} aria-current={active === key ? 'page' : undefined}>
               <span className="sb-ico">{ico}</span>
               <span>{label}</span>
-            </div>
+            </button>
           ))}
         </React.Fragment>
       ))}
@@ -444,18 +484,18 @@ function LoginScreen({ onLogin }){
             <div style={{fontSize:'.78rem',fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',marginBottom:'.8rem',color:'var(--sg-acc)'}}>Acceso rápido (Demo)</div>
             <div className="role-btns">
               {['admin','encargado','secretaria','profesor','alumno'].map(r => (
-                <div key={r} className="role-btn" onClick={()=>onLogin(r, 'aldia')}>
+                <button type="button" key={r} className="role-btn" onClick={()=>onLogin(r, 'aldia')}>
                   <span className="role-ico">{ROLE_SVG[r]}</span>
                   <span>{r[0].toUpperCase()+r.slice(1)}</span>
-                </div>
+                </button>
               ))}
             </div>
             <div style={{fontSize:'.7rem',fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',marginTop:'1.1rem',marginBottom:'.5rem',color:'var(--sg-warn)'}}>Perfiles especiales</div>
             <div className="role-btns" style={{gridTemplateColumns:'1fr'}}>
-              <div className="role-btn" onClick={()=>onLogin('alumno', 'deudor')} style={{flexDirection:'row', justifyContent:'flex-start', gap:'.6rem', borderColor:'rgba(232,52,58,.35)'}}>
+              <button type="button" className="role-btn" onClick={()=>onLogin('alumno', 'deudor')} style={{flexDirection:'row', justifyContent:'flex-start', gap:'.6rem', borderColor:'rgba(232,52,58,.35)'}}>
                 <span className="role-ico" style={{borderColor:'rgba(232,52,58,.4)', color:'var(--sg-err)', background:'rgba(232,52,58,.08)'}}>{ROLE_SVG.alumno}</span>
                 <span style={{textAlign:'left', flex:1}}>Alumno · Cuota Vencida<br/><span style={{fontSize:'.62rem', color:'var(--sg-mut)', letterSpacing:'.04em', textTransform:'none', fontWeight:500}}>Carlos López — ver restricciones por deuda</span></span>
-              </div>
+              </button>
             </div>
           </div>
         </div>
@@ -816,7 +856,8 @@ function ReportesScreen(){
   return (
     <div className="scr active">
       <PageHeader title="REPORTES Y" accent="ESTADÍSTICAS" sub="KPIs de gestión">
-        <Btn variant="p" onClick={()=>alert('Se ha exportado con éxito')}>Exportar</Btn>
+        <Btn variant="p" onClick={()=>downloadCSV('squatgym-reporte.csv', [['Alumno','DNI','Plan','Sede','Vencimiento','Estado'], ...filteredAlumnos.map(a=>[`${a.ap}, ${a.no}`,a.dni,a.plan,a.sede,a.vto,a.estado])])}>Exportar CSV</Btn>
+        <Btn variant="s" onClick={printPage}>Imprimir</Btn>
       </PageHeader>
 
       <div className="srch mb1" style={{display:'flex',gap:'1rem',alignItems:'center',flexWrap:'wrap'}}>
@@ -913,7 +954,7 @@ function NotificacionesScreen({ role }){
           </div>
           <div className="factions">
             <Btn variant="s" onClick={()=>setTab('historial')}>Cancelar</Btn>
-            <Btn variant="p" onClick={()=>{ alert('Notificación masiva enviada correctamente.'); setTab('historial'); }}>Enviar Mensaje</Btn>
+            <Btn variant="p" onClick={()=>{ notify('Notificación masiva enviada correctamente.', 'ok'); setTab('historial'); }}>Enviar Mensaje</Btn>
           </div>
         </FormSection>
       )}
@@ -1108,7 +1149,7 @@ function DeclJuradaScreen({ onNav }){
           </FormSection>
           <div className="factions">
             <Btn variant="s" onClick={()=>setEditar(false)}>Cancelar</Btn>
-            <Btn variant="p" onClick={()=>{ alert('Declaración guardada'); setEditar(false); }}>Guardar</Btn>
+            <Btn variant="p" onClick={()=>{ notify('Declaración guardada correctamente.', 'ok'); setEditar(false); }}>Guardar</Btn>
           </div>
         </>
       )}
@@ -1225,7 +1266,7 @@ function FormAlumnoScreen({ onNav, alumno }){
         {step < 3 ? (
           <Btn variant="p" onClick={()=>setStep(s=>s+1)}>Siguiente paso</Btn>
         ) : (
-          <Btn variant="p" onClick={()=>{ alert('Alumno guardado exitosamente'); onNav('alumnos'); }}>Finalizar y Guardar</Btn>
+          <Btn variant="p" onClick={()=>{ notify('Alumno guardado exitosamente.', 'ok'); onNav('alumnos'); }}>Finalizar y Guardar</Btn>
         )}
       </div>
     </div>
@@ -1362,12 +1403,12 @@ function FormClaseScreen({ onNav, clase }){
 
   const guardar = () => {
     if (conflictos.length > 0 && !forzar) {
-      alert('No se puede guardar: hay conflictos sin resolver. Revisá las advertencias o tildá "Forzar guardado".');
+      notify('No se puede guardar: hay conflictos sin resolver. Revisá las advertencias o tildá "Forzar guardado".', 'err');
       return;
     }
-    alert(conflictos.length > 0
-      ? `Clase guardada con conflictos forzados (demo) — los responsables fueron notificados.`
-      : 'Clase guardada correctamente (demo)');
+    notify(conflictos.length > 0
+      ? `Clase guardada con conflictos forzados — los responsables fueron notificados.`
+      : 'Clase guardada correctamente');
     onNav('clases');
   };
 
@@ -1547,7 +1588,7 @@ function RegistroAsistenciaScreen({ onNav, role }){
     <div className="scr active">
       <PageHeader title="REGISTRO DE" accent="ASISTENCIA" sub={`${c?.nombre} · ${c?.dias?c.dias.join(', '):c?.dia} ${c?.hora}`}>
         <Btn variant="s" onClick={()=>onNav(role==='profesor'?'clases':'dashboard')}>← Volver</Btn>
-        <Btn variant="p" onClick={()=>alert(`Asistencia guardada: ${presentes} presentes, ${ausentes} ausentes`)}>Guardar</Btn>
+        <Btn variant="p" onClick={()=>notify(`Asistencia guardada: ${presentes} presentes, ${ausentes} ausentes`, 'ok')}>Guardar</Btn>
       </PageHeader>
       <div className="tbl-wrap">
         <div className="tbl-top">
@@ -1702,11 +1743,11 @@ function BajaConfirmScreen({ onNav, tipo='alumno', item }){
             if (tipo === 'alumno' && item) {
               const idx = ALUMNOS.findIndex(a => a.id === item.id);
               if (idx >= 0) ALUMNOS[idx].estado = 'Inactivo';
-              alert(`El alumno ${item.ap}, ${item.no} ha sido marcado como Inactivo.`);
+              notify(`El alumno ${item.ap}, ${item.no} ha sido marcado como Inactivo.`, 'ok');
             } else if (tipo === 'clase' && item) {
               const idx = CLASES.findIndex(c => c.id === item.id);
               if (idx >= 0) CLASES.splice(idx, 1);
-              alert(`La clase ${item.nombre} fue eliminada del sistema.`);
+              notify(`La clase ${item.nombre} fue eliminada del sistema.`, 'ok');
             }
             onNav(tipo==='alumno'?'alumnos':'clases');
           }}>Confirmar baja</button>
@@ -1787,7 +1828,7 @@ function RegistrarPagoScreen({ onNav, alumno }){
 
       <div className="factions">
         <Btn variant="s" onClick={()=>onNav('pagos')}>Cancelar</Btn>
-        <Btn variant="ok" onClick={()=>{ alert(`Pago registrado: $${total.toLocaleString('es-AR')} (${metodo})\nComprobante: R-${Math.floor(Math.random()*9000+1000)}`); onNav('pagos'); }}>✓ Confirmar y emitir comprobante</Btn>
+        <Btn variant="ok" onClick={()=>{ notify(`Pago registrado: $${total.toLocaleString('es-AR')} (${metodo}). Comprobante emitido.`, 'ok'); onNav('pagos'); }}>✓ Confirmar y emitir comprobante</Btn>
       </div>
     </div>
   );
@@ -1828,7 +1869,7 @@ function PromocionesScreen({ onNav }){
         </FormSection>
         <div className="factions">
           <Btn variant="s" onClick={()=>{ setNueva(false); setEditando(null); }}>Cancelar</Btn>
-          <Btn variant="p" onClick={()=>{ alert('Promoción guardada (demo)'); setNueva(false); setEditando(null); }}>Guardar</Btn>
+          <Btn variant="p" onClick={()=>{ notify('Promoción guardada correctamente.', 'ok'); setNueva(false); setEditando(null); }}>Guardar</Btn>
         </div>
       </div>
     );
@@ -1869,7 +1910,7 @@ function PromocionesScreen({ onNav }){
                 <td><Badge variant={p.estado==='Activa'?'ok':p.estado==='Vencida'?'err':'warn'}>{p.estado}</Badge></td>
                 <td>
                   <button className="ab ab-e" onClick={()=>setEditando(p)}>✎ Editar</button>
-                  <button className="ab ab-d" onClick={()=>alert(`Promoción "${p.codigo}" suspendida (demo)`)}>✖</button>
+                  <button className="ab ab-d" onClick={()=>notify(`Promoción "${p.codigo}" suspendida.`, 'ok')}>✖</button>
                 </td>
               </tr>
             ))}
@@ -1896,7 +1937,7 @@ function InasistenciasScreen({ onNav }){
       <div className="tbl-wrap">
         <div className="tbl-top">
           <div className="tbl-title">Alumnos con ausencias reiteradas</div>
-          <Btn variant="s" onClick={()=>alert('Notificaciones masivas enviadas a los alumnos en riesgo (demo)')}>📧 Notificar a todos</Btn>
+          <Btn variant="s" onClick={()=>notify('Notificaciones masivas enviadas a los alumnos en riesgo.', 'ok')}>📧 Notificar a todos</Btn>
         </div>
         <table>
           <thead><tr><th>Alumno</th><th>Plan</th><th>Ausencias</th><th>Período</th><th>Riesgo</th><th>Acciones</th></tr></thead>
@@ -1909,8 +1950,8 @@ function InasistenciasScreen({ onNav }){
                 <td style={{fontSize:'.8rem',color:'var(--sg-mut)'}}>{x.periodo}</td>
                 <td><Badge variant={x.riesgo==='Alto'?'err':x.riesgo==='Medio'?'warn':'ok'}>{x.riesgo}</Badge></td>
                 <td>
-                  <button className="ab ab-v" onClick={()=>alert(`Contactando a ${x.alumno}...`)}>📞 Contactar</button>
-                  <button className="ab ab-e" onClick={()=>alert(`Notificación enviada a ${x.alumno}`)}>📧 Notificar</button>
+                  <button className="ab ab-v" onClick={()=>notify(`Contacto preparado para ${x.alumno}.`, 'ok')}>📞 Contactar</button>
+                  <button className="ab ab-e" onClick={()=>notify(`Notificación enviada a ${x.alumno}.`, 'ok')}>📧 Notificar</button>
                 </td>
               </tr>
             ))}
@@ -1955,7 +1996,7 @@ function ReemplazosScreen({ onNav, role }){
         <Alert variant="info">📧 Al confirmar, el sistema notifica al alumnado inscripto y al profesor sustituto (CU GC-06).</Alert>
         <div className="factions">
           <Btn variant="s" onClick={()=>setNuevo(false)}>Cancelar</Btn>
-          <Btn variant="p" onClick={()=>{ alert('Reemplazo asignado y notificaciones enviadas (demo)'); setNuevo(false); }}>Confirmar reemplazo</Btn>
+          <Btn variant="p" onClick={()=>{ notify('Reemplazo asignado y notificaciones enviadas.', 'ok'); setNuevo(false); }}>Confirmar reemplazo</Btn>
         </div>
       </div>
     );
@@ -1987,8 +2028,8 @@ function ReemplazosScreen({ onNav, role }){
                 <td style={{fontSize:'.82rem',color:'var(--sg-mut)'}}>{r.motivo}</td>
                 <td><Badge variant={r.estado==='Confirmado'?'ok':'warn'}>{r.estado}</Badge></td>
                 <td>
-                  {r.estado === 'Pendiente' && <button className="ab ab-e" onClick={()=>alert('Reemplazo confirmado')}>✓ Confirmar</button>}
-                  <button className="ab ab-d" onClick={()=>alert('Reemplazo cancelado')}>✖</button>
+                  {r.estado === 'Pendiente' && <button className="ab ab-e" onClick={()=>notify('Reemplazo confirmado.', 'ok')}>✓ Confirmar</button>}
+                  <button className="ab ab-d" onClick={()=>notify('Reemplazo cancelado.', 'warn')}>✖</button>
                 </td>
               </tr>
             ))}
@@ -2078,7 +2119,7 @@ function DisponibilidadScreen({ onNav }){
 
       <div className="factions">
         <Btn variant="s" onClick={()=>onNav('clases')}>Ver Cronograma</Btn>
-        <Btn variant="p" disabled={libres===0} onClick={()=>alert('Inscripción registrada para la clase (demo)')}>
+        <Btn variant="p" disabled={libres===0} onClick={()=>notify('Inscripción registrada para la clase.', 'ok')}>
           {libres === 0 ? 'Sin cupos' : '+ Reservar cupo'}
         </Btn>
       </div>
@@ -2127,6 +2168,17 @@ function App(){
   const [perfil, setPerfil] = useState('aldia'); // 'aldia' | 'deudor' — solo aplica a rol alumno
   const [scr, setScr] = useState('dashboard');
   const [selected, setSelected] = useState(null);
+  const [toasts, setToasts] = useState([]);
+
+  React.useEffect(() => {
+    const handleToast = event => {
+      const id = Date.now() + Math.random();
+      setToasts(current => [...current, {id, message:event.detail.message, type:event.detail.type || 'info'}]);
+      window.setTimeout(() => setToasts(current => current.filter(toast => toast.id !== id)), 4200);
+    };
+    window.addEventListener('sg:toast', handleToast);
+    return () => window.removeEventListener('sg:toast', handleToast);
+  }, []);
 
   React.useEffect(() => {
     try { const saved = JSON.parse(localStorage.getItem('sg_state') || 'null'); if (saved) { setRole(saved.role); setPerfil(saved.perfil || 'aldia'); setScr(saved.scr || 'dashboard'); } } catch {}
@@ -2137,7 +2189,8 @@ function App(){
 
   const [filtroAlumnos, setFiltroAlumnos] = useState(null);
 
-  if (!role) return <LoginScreen onLogin={(r, p='aldia') => { setRole(r); setPerfil(p); setScr(r === 'alumno' ? 'portal' : 'dashboard'); }} />;
+  const toastRegion = <div className="toast-region" aria-live="polite">{toasts.map(toast => <div key={toast.id} className={'toast ' + toast.type}>{toast.message}</div>)}</div>;
+  if (!role) return <><LoginScreen onLogin={(r, p='aldia') => { setRole(r); setPerfil(p); setScr(r === 'alumno' ? 'portal' : 'dashboard'); }} />{toastRegion}</>;
 
   const onNav = key => setScr(key);
   const onSelect = a => { setSelected(a); };
@@ -2194,10 +2247,11 @@ function App(){
 
   return (
     <div style={{minHeight:'100vh'}}>
-      <Topbar role={role} perfil={perfil} onLogout={()=>setRole(null)} onHome={()=>setScr(isAlumno?'portal':'dashboard')}/>
+      <Topbar role={role} perfil={perfil} onLogout={()=>{setRole(null); setScr('dashboard');}} onHome={()=>setScr(isAlumno?'portal':'dashboard')}/>
       <div className="app-body">
         <Sidebar role={role} active={scr} onNav={onNav}/>
         <div className="main">{screen}</div>
+        {toastRegion}
       </div>
     </div>
   );
